@@ -5,125 +5,106 @@ const DEFAULT_PARAMS = {
   frontColor: "Silver",
   backColor: "Gold",
   font: "Liberation Sans:style=Bold",
-  textOffsetFromBack: 1.5,
-  textDepth: 1.2,
-  tagDepth: 3,
-  ringHoleX: 0,
-  ringHoleY: 18,
+  fontSize: 12,
+  textDepth: 3,
+  backgroundDepth: 4,
+  backgroundOffset: 1.5,
   ringHoleDiameter: 5,
-  tagWidth: 40,
-  tagHeight: 30,
-  fontSize: 8,
+  ringThickness: 2,
+  ringPosition: "top-center",
 };
 
 function generateOpenSCAD(params: typeof DEFAULT_PARAMS): string {
   return `// ============================================
 // Dog Name Tag Generator - OpenSCAD
 // ============================================
-// Parameters for customizing your dog's name tag
-// Open this file in OpenSCAD to render and export
+// 3-part tag: Text shape + Background outline + Ring
+// The text IS the tag shape; the background is a
+// slightly larger outline behind it.
 
 // --- TEXT PARAMETERS ---
-dog_name = "${params.name}";           // Name to engrave on the tag
-font = "${params.font}";  // Font to use for the text
-font_size = ${params.fontSize};                    // Size of the text
+dog_name = "${params.name}";
+font = "${params.font}";
+font_size = ${params.fontSize};
 
-// --- COLOR PARAMETERS ---
-// Colors are for preview in OpenSCAD only (not for 3D printing)
-front_color = "${params.frontColor}";    // Color of the front face
-back_color = "${params.backColor}";      // Color of the back face
+// --- COLOR PARAMETERS (preview only) ---
+front_color = "${params.frontColor}";
+back_color = "${params.backColor}";
 
 // --- DIMENSION PARAMETERS ---
-tag_width = ${params.tagWidth};                    // Width of the tag in mm
-tag_height = ${params.tagHeight};                  // Height of the tag in mm
-tag_depth = ${params.tagDepth};                    // Total depth/thickness of the tag in mm
-text_depth = ${params.textDepth};                  // How deep the text is engraved in mm
-text_offset_from_back = ${params.textOffsetFromBack};           // Offset from back surface to text start
+text_depth = ${params.textDepth};              // Thickness of the text letters
+background_depth = ${params.backgroundDepth};   // Thickness of the background outline
+background_offset = ${params.backgroundOffset}; // How much bigger the background is vs text
 
-// --- RING HOLE PARAMETERS ---
-ring_hole_x = ${params.ringHoleX};                    // X position of ring hole center (0 = centered)
-ring_hole_y = ${params.ringHoleY};                   // Y position of ring hole center (from bottom)
-ring_hole_diameter = ${params.ringHoleDiameter};              // Diameter of the ring hole in mm
-
-// --- DERIVED VALUES (no need to change) ---
-corner_radius = 3;                   // Corner rounding radius
-ring_hole_depth = tag_depth + 2;     // Extra depth to ensure hole goes through
-border_width = 1.5;                  // Border around text area
+// --- RING PARAMETERS ---
+ring_hole_diameter = ${params.ringHoleDiameter}; // Inner diameter of the ring hole
+ring_thickness = ${params.ringThickness};         // Thickness of the ring material
+ring_position = "${params.ringPosition}";         // "top-center", "top-left", "top-right"
 
 // ============================================
 // MAIN RENDER
 // ============================================
 
-color(front_color) {
-    difference() {
-        // Main tag body
-        tag_body();
-        
-        // Ring hole
-        translate([ring_hole_x, ring_hole_y, -1])
-            cylinder(h=ring_hole_depth, d=ring_hole_diameter, $fn=50);
-        
-        // Engraved text on the back
-        engrave_text();
-    }
-}
+// Determine ring X position based on setting
+ring_x = (ring_position == "top-center") ? 0 :
+         (ring_position == "top-left") ? -text_width()/2 + ring_hole_diameter :
+         text_width()/2 - ring_hole_diameter;
+
+// Color preview
+color(front_color) text_part();
+color(back_color) background_part();
+color(front_color) ring_part();
 
 // ============================================
 // MODULES
 // ============================================
 
-module tag_body() {
-    // Rounded rectangle tag body
-    hull() {
-        // Bottom corners
-        translate([-tag_width/2 + corner_radius, -tag_height/2 + corner_radius, 0])
-            cylinder(h=tag_depth, r=corner_radius, $fn=50);
-        translate([tag_width/2 - corner_radius, -tag_height/2 + corner_radius, 0])
-            cylinder(h=tag_depth, r=corner_radius, $fn=50);
-        
-        // Top corners
-        translate([-tag_width/2 + corner_radius, tag_height/2 - corner_radius, 0])
-            cylinder(h=tag_depth, r=corner_radius, $fn=50);
-        translate([tag_width/2 - corner_radius, tag_height/2 - corner_radius, 0])
-            cylinder(h=tag_depth, r=corner_radius, $fn=50);
+// The 2D text shape (used by both text and background)
+module name_text_2d() {
+    text(
+        text = dog_name,
+        size = font_size,
+        font = font,
+        halign = "center",
+        valign = "center"
+    );
+}
+
+// Calculate text width for ring positioning
+function text_width() = font_size * len(dog_name) * 0.6;
+function text_height_approx() = font_size;
+
+// PART 1: The text (front color) - the actual name letters
+module text_part() {
+    linear_extrude(height = text_depth) {
+        name_text_2d();
     }
 }
 
-module engrave_text() {
-    // Text is engraved from the back face
-    // text_offset_from_back controls how far from the back the engraving starts
-    translate([0, -2, tag_depth - text_offset_from_back])
-        linear_extrude(height=text_depth + 1)
-            text(
-                text = dog_name,
-                size = font_size,
-                font = font,
-                halign = "center",
-                valign = "center"
-            );
+// PART 2: The background (back color) - same shape, slightly bigger
+// This creates an outline/border effect around the text
+module background_part() {
+    linear_extrude(height = background_depth) {
+        offset(r = background_offset) {
+            name_text_2d();
+        }
+    }
 }
 
-// ============================================
-// PREVIEW (uncomment for dual-color preview)
-// ============================================
-// Uncomment below to see front and back colors separately
+// PART 3: The ring - a torus at the top of the tag for collar attachment
+module ring_part() {
+    ring_y = text_height_approx() / 2 + ring_hole_diameter / 2 + background_offset + 2;
+    ring_outer = ring_hole_diameter / 2 + ring_thickness;
 
-/*
-// Front face
-color(front_color)
-    translate([0, 0, tag_depth - 0.1])
-        linear_extrude(height=0.1)
-            projection(cut=true)
-                translate([0, 0, -tag_depth])
-                    tag_body();
-
-// Back face with text
-color(back_color)
-    translate([0, 0, 0])
-        linear_extrude(height=0.1)
-            projection(cut=true)
-                tag_body();
-*/
+    translate([ring_x, ring_y, background_depth / 2]) {
+        difference() {
+            // Outer ring body
+            rotate_extrude($fn = 60)
+                translate([ring_hole_diameter / 2 + ring_thickness / 2, 0, 0])
+                    circle(r = ring_thickness / 2, $fn = 30);
+        }
+    }
+}
 
 // ============================================
 // NOTES
@@ -133,16 +114,16 @@ color(back_color)
 // 2. Press F6 to render
 // 3. File -> Export -> STL
 //
-// For dual-color printing:
-// - Export the front and back separately using projections
-// - Or use a multi-material printer with color settings
+// The tag has 3 parts:
+// - Text: The dog's name as the main shape
+// - Background: A slightly larger outline behind the text
+// - Ring: A loop at the top for collar attachment
 //
 // Tips:
-// - Increase text_depth for deeper engraving (more durable)
-// - Adjust ring_hole_diameter to fit your collar ring
-// - Use bold fonts for better readability
-// - Minimum recommended tag_width: 30mm
-// - Minimum recommended tag_depth: 2mm
+// - background_offset controls how thick the border is
+// - background_depth should be >= text_depth for best look
+// - Use bold fonts for better visibility
+// - The ring connects to the background outline
 `;
 }
 
@@ -173,211 +154,215 @@ function ParameterInput({
       {description && (
         <p className="text-xs text-gray-500 mb-1">{description}</p>
       )}
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        min={min}
-        max={max}
-        step={step}
-        className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
-      />
+      {type === "select" ? (
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+        >
+          <option value="top-center">Top Center</option>
+          <option value="top-left">Top Left</option>
+          <option value="top-right">Top Right</option>
+        </select>
+      ) : (
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          min={min}
+          max={max}
+          step={step}
+          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+        />
+      )}
     </div>
   );
 }
 
 function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
-  // Scale so the tag fills the SVG nicely
-  const svgWidth = 320;
-  const svgHeight = 280;
-  const padding = 50;
-
-  // Calculate scale to fit tag in SVG with padding
-  const scaleX = (svgWidth - padding * 2) / params.tagWidth;
-  const scaleY = (svgHeight - padding * 2) / params.tagHeight;
-  const scale = Math.min(scaleX, scaleY);
-
-  const tagW = params.tagWidth * scale;
-  const tagH = params.tagHeight * scale;
+  const svgWidth = 380;
+  const svgHeight = 260;
   const cx = svgWidth / 2;
-  const cy = svgHeight / 2;
+  const cy = svgHeight / 2 + 10;
 
-  // Ring hole position: ring_hole_x is offset from center, ring_hole_y is from bottom
-  const holeX = cx + params.ringHoleX * scale;
-  const holeY = cy + tagH / 2 - params.ringHoleY * scale;
-  const holeR = (params.ringHoleDiameter * scale) / 2;
+  // Scale factor for rendering text
+  const scaleFactor = 2.8;
+  const fontSize = params.fontSize * scaleFactor;
 
-  // Corner radius in SVG pixels
-  const cornerR = 3 * scale;
+  // Estimate text dimensions
+  const charWidth = fontSize * 0.62;
+  const textTotalWidth = params.name.length * charWidth;
+  const textTotalHeight = fontSize * 1.1;
 
-  // Font size for the name text
-  const nameFontSize = Math.min(params.fontSize * scale * 0.9, tagW * 0.7, tagH * 0.35);
+  // Background offset in pixels
+  const bgOffset = params.backgroundOffset * scaleFactor;
+
+  // Ring position
+  const ringY = cy - textTotalHeight / 2 - bgOffset - fontSize * 0.5;
+  let ringX = cx;
+  if (params.ringPosition === "top-left") {
+    ringX = cx - textTotalWidth / 2 + fontSize * 0.4;
+  } else if (params.ringPosition === "top-right") {
+    ringX = cx + textTotalWidth / 2 - fontSize * 0.4;
+  }
+  const ringOuterR = (params.ringHoleDiameter / 2 + params.ringThickness) * scaleFactor * 0.5;
+  const ringInnerR = (params.ringHoleDiameter / 2) * scaleFactor * 0.5;
 
   return (
-    <div className="flex flex-col items-center">
-      <h3 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">Front View</h3>
+    <div className="flex flex-col items-center gap-4">
+      {/* Front View */}
+      <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Front View</h3>
       <svg width={svgWidth} height={svgHeight} className="drop-shadow-xl">
         <defs>
-          {/* Metallic gold gradient */}
-          <linearGradient id="tagGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          {/* Background gradient (back color - gold) */}
+          <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#f0d060" />
-            <stop offset="25%" stopColor="#d4a843" />
-            <stop offset="50%" stopColor="#e8c84a" />
-            <stop offset="75%" stopColor="#c9952e" />
+            <stop offset="30%" stopColor="#d4a843" />
+            <stop offset="60%" stopColor="#e8c84a" />
             <stop offset="100%" stopColor="#b8862d" />
           </linearGradient>
-          {/* Shine effect */}
-          <radialGradient id="shineGradient" cx="35%" cy="30%" r="60%">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-          </radialGradient>
-          {/* Shadow filter */}
-          <filter id="tagShadow" x="-10%" y="-10%" width="120%" height="130%">
-            <feDropShadow dx="2" dy="4" stdDeviation="4" floodColor="#000" floodOpacity="0.4" />
+          {/* Text gradient (front color - silver) */}
+          <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#f0f0f0" />
+            <stop offset="30%" stopColor="#d8d8d8" />
+            <stop offset="60%" stopColor="#e8e8e8" />
+            <stop offset="100%" stopColor="#b0b0b0" />
+          </linearGradient>
+          {/* Ring gradient */}
+          <linearGradient id="ringGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#e0e0e0" />
+            <stop offset="50%" stopColor="#a0a0a0" />
+            <stop offset="100%" stopColor="#c0c0c0" />
+          </linearGradient>
+          {/* Shadow */}
+          <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="2" dy="3" stdDeviation="3" floodColor="#000" floodOpacity="0.5" />
           </filter>
-          {/* Inner shadow for hole */}
-          <filter id="holeShadow">
-            <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#000" floodOpacity="0.6" />
+          <filter id="innerShadow">
+            <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#000" floodOpacity="0.3" />
           </filter>
-          {/* Arrow marker for dimensions */}
-          <marker id="arrowStart" markerWidth="6" markerHeight="6" refX="0" refY="3" orient="auto">
-            <path d="M6,0 L0,3 L6,6" fill="none" stroke="#888" strokeWidth="1" />
-          </marker>
-          <marker id="arrowEnd" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6" fill="none" stroke="#888" strokeWidth="1" />
-          </marker>
         </defs>
 
-        {/* Tag body with shadow */}
-        <rect
-          x={cx - tagW / 2}
-          y={cy - tagH / 2}
-          width={tagW}
-          height={tagH}
-          rx={cornerR}
-          ry={cornerR}
-          fill="url(#tagGradient)"
-          stroke="#8a6b1e"
-          strokeWidth={1.5}
-          filter="url(#tagShadow)"
-        />
-
-        {/* Shine overlay */}
-        <rect
-          x={cx - tagW / 2}
-          y={cy - tagH / 2}
-          width={tagW}
-          height={tagH}
-          rx={cornerR}
-          ry={cornerR}
-          fill="url(#shineGradient)"
-        />
-
-        {/* Ring hole */}
-        <circle
-          cx={holeX}
-          cy={holeY}
-          r={holeR}
-          fill="#1a1a2e"
-          stroke="#5a4a10"
-          strokeWidth={1.5}
-          filter="url(#holeShadow)"
-        />
-        {/* Inner ring highlight */}
-        <circle
-          cx={holeX}
-          cy={holeY}
-          r={holeR - 1}
-          fill="none"
-          stroke="rgba(255,255,255,0.15)"
-          strokeWidth={0.5}
-        />
-
-        {/* Engraved text - shadow layer for depth */}
+        {/* Background outline (same shape as text, but bigger) */}
         <text
           x={cx}
-          y={cy + tagH * 0.1 + 0.8}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill="rgba(255,255,255,0.2)"
-          fontSize={nameFontSize}
-          fontWeight="bold"
-          fontFamily="sans-serif"
-        >
-          {params.name}
-        </text>
-        {/* Engraved text - main */}
-        <text
-          x={cx}
-          y={cy + tagH * 0.1}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill="#5a3d08"
-          fontSize={nameFontSize}
-          fontWeight="bold"
-          fontFamily="sans-serif"
-        >
-          {params.name}
-        </text>
-
-        {/* Width dimension line */}
-        <line
-          x1={cx - tagW / 2}
-          y1={cy + tagH / 2 + 20}
-          x2={cx + tagW / 2}
-          y2={cy + tagH / 2 + 20}
-          stroke="#666"
-          strokeWidth={1}
-          markerStart="url(#arrowStart)"
-          markerEnd="url(#arrowEnd)"
-        />
-        <text
-          x={cx}
-          y={cy + tagH / 2 + 35}
-          textAnchor="middle"
-          fill="#aaa"
-          fontSize={11}
-          fontFamily="monospace"
-        >
-          {params.tagWidth}mm
-        </text>
-
-        {/* Height dimension line */}
-        <line
-          x1={cx + tagW / 2 + 20}
-          y1={cy - tagH / 2}
-          x2={cx + tagW / 2 + 20}
-          y2={cy + tagH / 2}
-          stroke="#666"
-          strokeWidth={1}
-          markerStart="url(#arrowStart)"
-          markerEnd="url(#arrowEnd)"
-        />
-        <text
-          x={cx + tagW / 2 + 35}
           y={cy}
           textAnchor="middle"
-          fill="#aaa"
-          fontSize={11}
-          fontFamily="monospace"
-          transform={`rotate(90, ${cx + tagW / 2 + 35}, ${cy})`}
+          dominantBaseline="central"
+          fill="url(#bgGradient)"
+          stroke="#8a6b1e"
+          strokeWidth={bgOffset * 2}
+          strokeLinejoin="round"
+          fontSize={fontSize}
+          fontWeight="900"
+          fontFamily="Arial Black, Impact, sans-serif"
+          filter="url(#shadow)"
+          paintOrder="stroke fill"
         >
-          {params.tagHeight}mm
+          {params.name}
         </text>
 
-        {/* Ring hole diameter annotation */}
+        {/* Text (front color) - sits on top of background */}
+        <text
+          x={cx}
+          y={cy}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill="url(#textGradient)"
+          stroke="#888"
+          strokeWidth={0.5}
+          fontSize={fontSize}
+          fontWeight="900"
+          fontFamily="Arial Black, Impact, sans-serif"
+        >
+          {params.name}
+        </text>
+
+        {/* Text shine effect */}
+        <text
+          x={cx}
+          y={cy - 1}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill="rgba(255,255,255,0.15)"
+          fontSize={fontSize}
+          fontWeight="900"
+          fontFamily="Arial Black, Impact, sans-serif"
+        >
+          {params.name}
+        </text>
+
+        {/* Ring at top */}
+        {/* Ring outer */}
+        <circle
+          cx={ringX}
+          cy={ringY}
+          r={ringOuterR}
+          fill="url(#ringGradient)"
+          stroke="#777"
+          strokeWidth={1}
+          filter="url(#innerShadow)"
+        />
+        {/* Ring inner hole */}
+        <circle
+          cx={ringX}
+          cy={ringY}
+          r={ringInnerR}
+          fill="#1a1a2e"
+          stroke="#555"
+          strokeWidth={0.8}
+        />
+        {/* Ring highlight */}
+        <circle
+          cx={ringX - ringOuterR * 0.2}
+          cy={ringY - ringOuterR * 0.2}
+          r={ringOuterR * 0.3}
+          fill="rgba(255,255,255,0.2)"
+        />
+
+        {/* Annotations */}
+        {/* Background offset annotation */}
         <line
-          x1={holeX - holeR}
-          y1={holeY - holeR - 8}
-          x2={holeX + holeR}
-          y2={holeY - holeR - 8}
+          x1={cx + textTotalWidth / 2 + bgOffset + 10}
+          y1={cy - fontSize * 0.3}
+          x2={cx + textTotalWidth / 2 + bgOffset + 10}
+          y2={cy + fontSize * 0.3}
+          stroke="#666"
+          strokeWidth={0.8}
+        />
+        <line
+          x1={cx + textTotalWidth / 2 + 2}
+          y1={cy}
+          x2={cx + textTotalWidth / 2 + bgOffset + 10}
+          y2={cy}
+          stroke="#666"
+          strokeWidth={0.8}
+          strokeDasharray="2,2"
+        />
+        <text
+          x={cx + textTotalWidth / 2 + bgOffset + 16}
+          y={cy}
+          fill="#888"
+          fontSize={9}
+          fontFamily="monospace"
+          dominantBaseline="middle"
+        >
+          offset: {params.backgroundOffset}mm
+        </text>
+
+        {/* Ring diameter annotation */}
+        <line
+          x1={ringX - ringInnerR}
+          y1={ringY - ringOuterR - 8}
+          x2={ringX + ringInnerR}
+          y2={ringY - ringOuterR - 8}
           stroke="#555"
           strokeWidth={0.8}
           strokeDasharray="2,2"
         />
         <text
-          x={holeX}
-          y={holeY - holeR - 12}
+          x={ringX}
+          y={ringY - ringOuterR - 14}
           textAnchor="middle"
           fill="#777"
           fontSize={9}
@@ -385,149 +370,86 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
         >
           ⌀{params.ringHoleDiameter}mm
         </text>
-      </svg>
 
-      {/* Back View */}
-      <h3 className="text-sm font-semibold text-gray-400 mt-6 mb-3 uppercase tracking-wider">Back View (Engraved Side)</h3>
-      <svg width={svgWidth} height={svgHeight} className="drop-shadow-xl">
-        <defs>
-          <linearGradient id="tagGradientBack" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#c9952e" />
-            <stop offset="50%" stopColor="#b8862d" />
-            <stop offset="100%" stopColor="#a07525" />
-          </linearGradient>
-        </defs>
-
-        {/* Tag body */}
-        <rect
-          x={cx - tagW / 2}
-          y={cy - tagH / 2}
-          width={tagW}
-          height={tagH}
-          rx={cornerR}
-          ry={cornerR}
-          fill="url(#tagGradientBack)"
-          stroke="#7a5a15"
-          strokeWidth={1.5}
-          filter="url(#tagShadow)"
-        />
-
-        {/* Ring hole */}
-        <circle
-          cx={holeX}
-          cy={holeY}
-          r={holeR}
-          fill="#1a1a2e"
-          stroke="#5a4a10"
-          strokeWidth={1.5}
-        />
-
-        {/* Engraved text - raised edge (bottom) */}
-        <text
-          x={cx}
-          y={cy + tagH * 0.1 + 0.6}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill="rgba(255,255,255,0.15)"
-          fontSize={nameFontSize}
-          fontWeight="bold"
-          fontFamily="sans-serif"
-        >
-          {params.name}
-        </text>
-        {/* Engraved text - main (recessed) */}
-        <text
-          x={cx}
-          y={cy + tagH * 0.1}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill="#3d2a05"
-          fontSize={nameFontSize}
-          fontWeight="bold"
-          fontFamily="sans-serif"
-        >
-          {params.name}
-        </text>
-
-        {/* Depth annotation */}
-        <line
-          x1={cx - tagW / 2 - 15}
-          y1={cy - 15}
-          x2={cx - tagW / 2 - 15}
-          y2={cy + 15}
-          stroke="#666"
-          strokeWidth={0.8}
-          strokeDasharray="3,2"
-        />
-        <text
-          x={cx - tagW / 2 - 20}
-          y={cy}
-          textAnchor="end"
-          fill="#888"
-          fontSize={9}
-          fontFamily="monospace"
-          dominantBaseline="middle"
-        >
-          depth: {params.tagDepth}mm
-        </text>
-        <text
-          x={cx - tagW / 2 - 20}
-          y={cy + 14}
-          textAnchor="end"
-          fill="#888"
-          fontSize={9}
-          fontFamily="monospace"
-          dominantBaseline="middle"
-        >
-          engrave: {params.textDepth}mm
-        </text>
+        {/* Legend */}
+        <rect x={15} y={svgHeight - 45} width={12} height={12} rx={2} fill="url(#bgGradient)" stroke="#8a6b1e" strokeWidth={0.5} />
+        <text x={32} y={svgHeight - 35} fill="#aaa" fontSize={10} dominantBaseline="middle">Background (outline)</text>
+        <rect x={15} y={svgHeight - 25} width={12} height={12} rx={2} fill="url(#textGradient)" stroke="#888" strokeWidth={0.5} />
+        <text x={32} y={svgHeight - 15} fill="#aaa" fontSize={10} dominantBaseline="middle">Text (front face)</text>
       </svg>
 
       {/* Side Cross-Section */}
-      <h3 className="text-sm font-semibold text-gray-400 mt-6 mb-3 uppercase tracking-wider">Side Cross-Section</h3>
-      <svg width={svgWidth} height={100} className="drop-shadow-lg">
+      <h3 className="text-sm font-semibold text-gray-400 mt-4 uppercase tracking-wider">Side Cross-Section</h3>
+      <svg width={svgWidth} height={120}>
         {(() => {
-          const sideScale = Math.min(200 / params.tagWidth, 60 / params.tagDepth);
-          const sideW = params.tagWidth * sideScale;
-          const sideD = params.tagDepth * sideScale;
+          const depthScale = 12;
+          const bgD = params.backgroundDepth * depthScale;
+          const txtD = params.textDepth * depthScale;
           const scx = svgWidth / 2;
-          const scy = 50;
-          const textD = params.textDepth * sideScale;
+          const scy = 60;
+          const blockW = 180;
 
           return (
             <>
-              {/* Tag body */}
+              {/* Background block */}
               <rect
-                x={scx - sideW / 2}
-                y={scy - sideD / 2}
-                width={sideW}
-                height={sideD}
-                rx={2}
-                fill="#c9952e"
-                stroke="#7a5a15"
+                x={scx - blockW / 2}
+                y={scy - bgD / 2}
+                width={blockW}
+                height={bgD}
+                rx={3}
+                fill="url(#bgGradient)"
+                stroke="#8a6b1e"
                 strokeWidth={1}
               />
-              {/* Text engraving on back (top in cross-section = back face) */}
+              {/* Text block (on top of background, slightly inset) */}
               <rect
-                x={scx - sideW * 0.35}
-                y={scy - sideD / 2}
-                width={sideW * 0.7}
-                height={textD}
-                fill="#3d2a05"
+                x={scx - blockW / 2 + 8}
+                y={scy - bgD / 2 - txtD}
+                width={blockW - 16}
+                height={txtD}
+                rx={2}
+                fill="url(#textGradient)"
+                stroke="#888"
+                strokeWidth={1}
               />
+              {/* Ring cross-section */}
+              <circle
+                cx={scx}
+                cy={scy - bgD / 2 - txtD - 15}
+                r={8}
+                fill="url(#ringGradient)"
+                stroke="#777"
+                strokeWidth={1}
+              />
+              <circle
+                cx={scx}
+                cy={scy - bgD / 2 - txtD - 15}
+                r={4}
+                fill="#1a1a2e"
+              />
+
               {/* Labels */}
-              <text x={scx + sideW / 2 + 8} y={scy} fill="#aaa" fontSize={9} fontFamily="monospace" dominantBaseline="middle">
-                ← {params.tagDepth}mm →
+              <text x={scx + blockW / 2 + 10} y={scy} fill="#d4a843" fontSize={10} fontFamily="monospace" dominantBaseline="middle">
+                ← bg: {params.backgroundDepth}mm
               </text>
-              <text x={scx} y={scy - sideD / 2 - 8} fill="#888" fontSize={8} fontFamily="monospace" textAnchor="middle">
-                BACK (text engraved {params.textDepth}mm deep)
+              <text x={scx + blockW / 2 + 10} y={scy - bgD / 2 - txtD / 2} fill="#ccc" fontSize={10} fontFamily="monospace" dominantBaseline="middle">
+                ← txt: {params.textDepth}mm
               </text>
-              <text x={scx} y={scy + sideD / 2 + 14} fill="#888" fontSize={8} fontFamily="monospace" textAnchor="middle">
-                FRONT
+
+              {/* Depth lines */}
+              <line x1={scx - blockW / 2 - 10} y1={scy - bgD / 2} x2={scx - blockW / 2 - 10} y2={scy + bgD / 2} stroke="#666" strokeWidth={0.8} />
+              <line x1={scx - blockW / 2 - 15} y1={scy - bgD / 2} x2={scx - blockW / 2 - 5} y2={scy - bgD / 2} stroke="#666" strokeWidth={0.8} />
+              <line x1={scx - blockW / 2 - 15} y1={scy + bgD / 2} x2={scx - blockW / 2 - 5} y2={scy + bgD / 2} stroke="#666" strokeWidth={0.8} />
+              <text x={scx - blockW / 2 - 18} y={scy} fill="#888" fontSize={8} fontFamily="monospace" textAnchor="end" dominantBaseline="middle">
+                {params.backgroundDepth}
               </text>
-              {/* Front/Back labels */}
-              <line x1={scx - sideW / 2} y1={scy - sideD / 2 - 3} x2={scx + sideW / 2} y2={scy - sideD / 2 - 3} stroke="#666" strokeWidth={0.5} />
-              <line x1={scx - sideW / 2} y1={scy + sideD / 2 + 3} x2={scx + sideW / 2} y2={scy + sideD / 2 + 3} stroke="#666" strokeWidth={0.5} />
+
+              {/* Text depth line */}
+              <line x1={scx - blockW / 2 - 10} y1={scy - bgD / 2 - txtD} x2={scx - blockW / 2 - 10} y2={scy - bgD / 2} stroke="#999" strokeWidth={0.8} strokeDasharray="2,2" />
+              <text x={scx - blockW / 2 - 18} y={scy - bgD / 2 - txtD / 2} fill="#aaa" fontSize={8} fontFamily="monospace" textAnchor="end" dominantBaseline="middle">
+                {params.textDepth}
+              </text>
             </>
           );
         })()}
@@ -576,7 +498,7 @@ export default function App() {
             <div className="text-3xl">🐕</div>
             <div>
               <h1 className="text-xl font-bold text-amber-400">Dog Tag Generator</h1>
-              <p className="text-xs text-gray-400">OpenSCAD Parametric Name Tag</p>
+              <p className="text-xs text-gray-400">OpenSCAD — Text + Background Outline + Ring</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -616,31 +538,68 @@ export default function App() {
               {/* Text Section */}
               <div className="mb-6">
                 <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider mb-3 border-b border-gray-700 pb-2">
-                  📝 Text
+                  📝 Text (Part 1)
                 </h3>
                 <ParameterInput
                   label="Dog Name"
                   value={params.name}
                   onChange={(v) => updateParam("name", v)}
                   type="text"
-                  description="The name to engrave on the tag"
+                  description="The name that forms the tag shape"
                 />
                 <ParameterInput
                   label="Font"
                   value={params.font}
                   onChange={(v) => updateParam("font", v)}
                   type="text"
-                  description="OpenSCAD font string (e.g., 'Liberation Sans:style=Bold')"
+                  description="OpenSCAD font string"
                 />
                 <ParameterInput
                   label="Font Size (mm)"
                   value={params.fontSize}
                   onChange={(v) => updateParam("fontSize", v)}
                   type="number"
-                  min={3}
-                  max={20}
+                  min={5}
+                  max={30}
                   step={0.5}
-                  description="Height of the text characters"
+                  description="Size of the text — determines tag size"
+                />
+                <ParameterInput
+                  label="Text Depth (mm)"
+                  value={params.textDepth}
+                  onChange={(v) => updateParam("textDepth", v)}
+                  type="number"
+                  min={1}
+                  max={8}
+                  step={0.5}
+                  description="Thickness of the text letters"
+                />
+              </div>
+
+              {/* Background Section */}
+              <div className="mb-6">
+                <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider mb-3 border-b border-gray-700 pb-2">
+                  🖼️ Background Outline (Part 2)
+                </h3>
+                <ParameterInput
+                  label="Background Offset (mm)"
+                  value={params.backgroundOffset}
+                  onChange={(v) => updateParam("backgroundOffset", v)}
+                  type="number"
+                  min={0.5}
+                  max={5}
+                  step={0.1}
+                  description="How much bigger the background is vs the text"
+                />
+                <ParameterInput
+                  label="Background Depth (mm)"
+                  value={params.backgroundDepth}
+                  onChange={(v) => updateParam("backgroundDepth", v)}
+                  type="number"
+                  min={1}
+                  max={10}
+                  step={0.5}
+                  description="Thickness of the background (should be >= text depth)"
                 />
               </div>
 
@@ -650,112 +609,52 @@ export default function App() {
                   🎨 Colors (Preview Only)
                 </h3>
                 <ParameterInput
-                  label="Front Color"
+                  label="Front Color (Text)"
                   value={params.frontColor}
                   onChange={(v) => updateParam("frontColor", v)}
                   type="text"
-                  description="Color name or [R,G,B] for the front face"
+                  description="Color of the text letters"
                 />
                 <ParameterInput
-                  label="Back Color"
+                  label="Back Color (Background)"
                   value={params.backColor}
                   onChange={(v) => updateParam("backColor", v)}
                   type="text"
-                  description="Color name or [R,G,B] for the back face"
+                  description="Color of the background outline"
                 />
               </div>
 
-              {/* Dimensions Section */}
-              <div className="mb-6">
-                <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider mb-3 border-b border-gray-700 pb-2">
-                  📐 Dimensions
-                </h3>
-                <ParameterInput
-                  label="Tag Width (mm)"
-                  value={params.tagWidth}
-                  onChange={(v) => updateParam("tagWidth", v)}
-                  type="number"
-                  min={20}
-                  max={80}
-                  step={1}
-                  description="Total width of the tag"
-                />
-                <ParameterInput
-                  label="Tag Height (mm)"
-                  value={params.tagHeight}
-                  onChange={(v) => updateParam("tagHeight", v)}
-                  type="number"
-                  min={15}
-                  max={60}
-                  step={1}
-                  description="Total height of the tag"
-                />
-                <ParameterInput
-                  label="Tag Depth (mm)"
-                  value={params.tagDepth}
-                  onChange={(v) => updateParam("tagDepth", v)}
-                  type="number"
-                  min={1}
-                  max={8}
-                  step={0.5}
-                  description="Thickness of the tag"
-                />
-                <ParameterInput
-                  label="Text Depth (mm)"
-                  value={params.textDepth}
-                  onChange={(v) => updateParam("textDepth", v)}
-                  type="number"
-                  min={0.2}
-                  max={3}
-                  step={0.1}
-                  description="How deep the text is engraved"
-                />
-                <ParameterInput
-                  label="Text Offset from Back (mm)"
-                  value={params.textOffsetFromBack}
-                  onChange={(v) => updateParam("textOffsetFromBack", v)}
-                  type="number"
-                  min={0}
-                  max={5}
-                  step={0.1}
-                  description="Distance from back surface to where text starts"
-                />
-              </div>
-
-              {/* Ring Hole Section */}
+              {/* Ring Section */}
               <div className="mb-2">
                 <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider mb-3 border-b border-gray-700 pb-2">
-                  🔗 Ring Hole
+                  🔗 Ring (Part 3)
                 </h3>
                 <ParameterInput
-                  label="Hole X Position (mm)"
-                  value={params.ringHoleX}
-                  onChange={(v) => updateParam("ringHoleX", v)}
-                  type="number"
-                  min={-20}
-                  max={20}
-                  step={0.5}
-                  description="Horizontal offset from center (0 = centered)"
-                />
-                <ParameterInput
-                  label="Hole Y Position (mm)"
-                  value={params.ringHoleY}
-                  onChange={(v) => updateParam("ringHoleY", v)}
-                  type="number"
-                  min={5}
-                  max={30}
-                  step={0.5}
-                  description="Vertical position from bottom of tag"
-                />
-                <ParameterInput
-                  label="Hole Diameter (mm)"
+                  label="Ring Hole Diameter (mm)"
                   value={params.ringHoleDiameter}
                   onChange={(v) => updateParam("ringHoleDiameter", v)}
                   type="number"
-                  min={2}
+                  min={3}
                   max={12}
                   step={0.5}
-                  description="Diameter of the ring/collar hole"
+                  description="Inner diameter of the ring"
+                />
+                <ParameterInput
+                  label="Ring Thickness (mm)"
+                  value={params.ringThickness}
+                  onChange={(v) => updateParam("ringThickness", v)}
+                  type="number"
+                  min={1}
+                  max={5}
+                  step={0.5}
+                  description="Thickness of the ring material"
+                />
+                <ParameterInput
+                  label="Ring Position"
+                  value={params.ringPosition}
+                  onChange={(v) => updateParam("ringPosition", v)}
+                  type="select"
+                  description="Where the ring attaches to the tag"
                 />
               </div>
             </div>
@@ -790,7 +689,7 @@ export default function App() {
                   {copied ? "✓ Copied" : "Copy"}
                 </button>
               </div>
-              <div className="overflow-auto max-h-[600px] p-4">
+              <div className="overflow-auto max-h-[500px] p-4">
                 <pre className="text-xs leading-relaxed font-mono text-gray-300 whitespace-pre">
                   <code>{scadCode}</code>
                 </pre>
@@ -800,43 +699,43 @@ export default function App() {
             {/* Instructions */}
             <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
               <h3 className="text-lg font-semibold text-amber-400 mb-4 flex items-center gap-2">
-                <i className="fas fa-info-circle"></i> How to Use
+                <i className="fas fa-info-circle"></i> How It Works
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
-                    <p className="text-sm text-gray-300">Adjust parameters on the left to customize your dog tag</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-                    <p className="text-sm text-gray-300">Download the .scad file or copy the code</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
-                    <p className="text-sm text-gray-300">Open in <a href="https://openscad.org" target="_blank" rel="noopener" className="text-amber-400 hover:underline">OpenSCAD</a></p>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+                  <div className="text-2xl mb-2">✏️</div>
+                  <h4 className="font-semibold text-silver-300 text-white text-sm mb-1">Part 1: Text</h4>
+                  <p className="text-xs text-gray-400">The dog's name extruded as a 3D shape. This IS the tag — the letters form the outline.</p>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center text-xs font-bold">4</span>
-                    <p className="text-sm text-gray-300">Press F6 to render the 3D model</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center text-xs font-bold">5</span>
-                    <p className="text-sm text-gray-300">Export as STL (File → Export → STL)</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center text-xs font-bold">6</span>
-                    <p className="text-sm text-gray-300">Send to your 3D printer or printing service</p>
-                  </div>
+                <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+                  <div className="text-2xl mb-2">🖼️</div>
+                  <h4 className="font-semibold text-white text-sm mb-1">Part 2: Background</h4>
+                  <p className="text-xs text-gray-400">Same text shape but slightly larger using OpenSCAD's <code className="text-amber-400">offset()</code>. Creates a border/outline effect.</p>
+                </div>
+                <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+                  <div className="text-2xl mb-2">⭕</div>
+                  <h4 className="font-semibold text-white text-sm mb-1">Part 3: Ring</h4>
+                  <p className="text-xs text-gray-400">A torus at the top of the tag for attaching to the collar. Position is adjustable.</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                  <p className="text-sm text-gray-300">Adjust parameters to customize your dog tag</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                  <p className="text-sm text-gray-300">Download the .scad file or copy the code</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                  <p className="text-sm text-gray-300">Open in <a href="https://openscad.org" target="_blank" rel="noopener" className="text-amber-400 hover:underline">OpenSCAD</a> → Press F6 to render → Export as STL</p>
                 </div>
               </div>
               <div className="mt-4 p-3 bg-gray-900/50 rounded-lg border border-gray-600">
                 <p className="text-xs text-gray-400">
-                  <strong className="text-amber-400">💡 Tip:</strong> For best results with text engraving, use bold fonts. 
-                  The text is engraved from the back face of the tag. Colors are for OpenSCAD preview only and won't affect 3D printing.
-                  For dual-color tags, consider printing front and back separately and gluing together.
+                  <strong className="text-amber-400">💡 Tip:</strong> The <code className="text-amber-300">background_offset</code> parameter controls how thick the outline border is around the text. 
+                  Use bold fonts for best results. The ring is a torus (donut shape) created with <code className="text-amber-300">rotate_extrude</code>.
                 </p>
               </div>
             </div>
@@ -847,7 +746,7 @@ export default function App() {
       {/* Footer */}
       <footer className="border-t border-gray-700 mt-12 py-6">
         <div className="max-w-7xl mx-auto px-4 text-center text-sm text-gray-500">
-          <p>🐾 Dog Tag OpenSCAD Generator — Create custom name tags for your furry friend</p>
+          <p>🐾 Dog Tag OpenSCAD Generator — Text + Background Outline + Ring</p>
         </div>
       </footer>
     </div>

@@ -187,76 +187,350 @@ function ParameterInput({
 }
 
 function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
-  const widthScale = 4;
-  const heightScale = 4;
-  const svgWidth = 220;
-  const svgHeight = 200;
+  // Scale so the tag fills the SVG nicely
+  const svgWidth = 320;
+  const svgHeight = 280;
+  const padding = 50;
 
-  const tagW = params.tagWidth * widthScale / 10;
-  const tagH = params.tagHeight * heightScale / 10;
+  // Calculate scale to fit tag in SVG with padding
+  const scaleX = (svgWidth - padding * 2) / params.tagWidth;
+  const scaleY = (svgHeight - padding * 2) / params.tagHeight;
+  const scale = Math.min(scaleX, scaleY);
+
+  const tagW = params.tagWidth * scale;
+  const tagH = params.tagHeight * scale;
   const cx = svgWidth / 2;
-  const cy = svgHeight / 2 + 10;
+  const cy = svgHeight / 2;
 
-  const holeX = cx + (params.ringHoleX * widthScale / 10);
-  const holeY = cy - tagH / 2 + ((tagH - params.ringHoleY * heightScale / 10) * 0.3);
-  const holeR = (params.ringHoleDiameter * widthScale / 10) / 2;
+  // Ring hole position: ring_hole_x is offset from center, ring_hole_y is from bottom
+  const holeX = cx + params.ringHoleX * scale;
+  const holeY = cy + tagH / 2 - params.ringHoleY * scale;
+  const holeR = (params.ringHoleDiameter * scale) / 2;
+
+  // Corner radius in SVG pixels
+  const cornerR = 3 * scale;
+
+  // Font size for the name text
+  const nameFontSize = Math.min(params.fontSize * scale * 0.9, tagW * 0.7, tagH * 0.35);
 
   return (
     <div className="flex flex-col items-center">
-      <h3 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">Preview</h3>
-      <svg width={svgWidth} height={svgHeight} className="drop-shadow-lg">
+      <h3 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">Front View</h3>
+      <svg width={svgWidth} height={svgHeight} className="drop-shadow-xl">
+        <defs>
+          {/* Metallic gold gradient */}
+          <linearGradient id="tagGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#f0d060" />
+            <stop offset="25%" stopColor="#d4a843" />
+            <stop offset="50%" stopColor="#e8c84a" />
+            <stop offset="75%" stopColor="#c9952e" />
+            <stop offset="100%" stopColor="#b8862d" />
+          </linearGradient>
+          {/* Shine effect */}
+          <radialGradient id="shineGradient" cx="35%" cy="30%" r="60%">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+          </radialGradient>
+          {/* Shadow filter */}
+          <filter id="tagShadow" x="-10%" y="-10%" width="120%" height="130%">
+            <feDropShadow dx="2" dy="4" stdDeviation="4" floodColor="#000" floodOpacity="0.4" />
+          </filter>
+          {/* Inner shadow for hole */}
+          <filter id="holeShadow">
+            <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#000" floodOpacity="0.6" />
+          </filter>
+          {/* Arrow marker for dimensions */}
+          <marker id="arrowStart" markerWidth="6" markerHeight="6" refX="0" refY="3" orient="auto">
+            <path d="M6,0 L0,3 L6,6" fill="none" stroke="#888" strokeWidth="1" />
+          </marker>
+          <marker id="arrowEnd" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6" fill="none" stroke="#888" strokeWidth="1" />
+          </marker>
+        </defs>
+
+        {/* Tag body with shadow */}
+        <rect
+          x={cx - tagW / 2}
+          y={cy - tagH / 2}
+          width={tagW}
+          height={tagH}
+          rx={cornerR}
+          ry={cornerR}
+          fill="url(#tagGradient)"
+          stroke="#8a6b1e"
+          strokeWidth={1.5}
+          filter="url(#tagShadow)"
+        />
+
+        {/* Shine overlay */}
+        <rect
+          x={cx - tagW / 2}
+          y={cy - tagH / 2}
+          width={tagW}
+          height={tagH}
+          rx={cornerR}
+          ry={cornerR}
+          fill="url(#shineGradient)"
+        />
+
+        {/* Ring hole */}
+        <circle
+          cx={holeX}
+          cy={holeY}
+          r={holeR}
+          fill="#1a1a2e"
+          stroke="#5a4a10"
+          strokeWidth={1.5}
+          filter="url(#holeShadow)"
+        />
+        {/* Inner ring highlight */}
+        <circle
+          cx={holeX}
+          cy={holeY}
+          r={holeR - 1}
+          fill="none"
+          stroke="rgba(255,255,255,0.15)"
+          strokeWidth={0.5}
+        />
+
+        {/* Engraved text - shadow layer for depth */}
+        <text
+          x={cx}
+          y={cy + tagH * 0.1 + 0.8}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill="rgba(255,255,255,0.2)"
+          fontSize={nameFontSize}
+          fontWeight="bold"
+          fontFamily="sans-serif"
+        >
+          {params.name}
+        </text>
+        {/* Engraved text - main */}
+        <text
+          x={cx}
+          y={cy + tagH * 0.1}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill="#5a3d08"
+          fontSize={nameFontSize}
+          fontWeight="bold"
+          fontFamily="sans-serif"
+        >
+          {params.name}
+        </text>
+
+        {/* Width dimension line */}
+        <line
+          x1={cx - tagW / 2}
+          y1={cy + tagH / 2 + 20}
+          x2={cx + tagW / 2}
+          y2={cy + tagH / 2 + 20}
+          stroke="#666"
+          strokeWidth={1}
+          markerStart="url(#arrowStart)"
+          markerEnd="url(#arrowEnd)"
+        />
+        <text
+          x={cx}
+          y={cy + tagH / 2 + 35}
+          textAnchor="middle"
+          fill="#aaa"
+          fontSize={11}
+          fontFamily="monospace"
+        >
+          {params.tagWidth}mm
+        </text>
+
+        {/* Height dimension line */}
+        <line
+          x1={cx + tagW / 2 + 20}
+          y1={cy - tagH / 2}
+          x2={cx + tagW / 2 + 20}
+          y2={cy + tagH / 2}
+          stroke="#666"
+          strokeWidth={1}
+          markerStart="url(#arrowStart)"
+          markerEnd="url(#arrowEnd)"
+        />
+        <text
+          x={cx + tagW / 2 + 35}
+          y={cy}
+          textAnchor="middle"
+          fill="#aaa"
+          fontSize={11}
+          fontFamily="monospace"
+          transform={`rotate(90, ${cx + tagW / 2 + 35}, ${cy})`}
+        >
+          {params.tagHeight}mm
+        </text>
+
+        {/* Ring hole diameter annotation */}
+        <line
+          x1={holeX - holeR}
+          y1={holeY - holeR - 8}
+          x2={holeX + holeR}
+          y2={holeY - holeR - 8}
+          stroke="#555"
+          strokeWidth={0.8}
+          strokeDasharray="2,2"
+        />
+        <text
+          x={holeX}
+          y={holeY - holeR - 12}
+          textAnchor="middle"
+          fill="#777"
+          fontSize={9}
+          fontFamily="monospace"
+        >
+          ⌀{params.ringHoleDiameter}mm
+        </text>
+      </svg>
+
+      {/* Back View */}
+      <h3 className="text-sm font-semibold text-gray-400 mt-6 mb-3 uppercase tracking-wider">Back View (Engraved Side)</h3>
+      <svg width={svgWidth} height={svgHeight} className="drop-shadow-xl">
+        <defs>
+          <linearGradient id="tagGradientBack" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#c9952e" />
+            <stop offset="50%" stopColor="#b8862d" />
+            <stop offset="100%" stopColor="#a07525" />
+          </linearGradient>
+        </defs>
+
         {/* Tag body */}
         <rect
           x={cx - tagW / 2}
           y={cy - tagH / 2}
           width={tagW}
           height={tagH}
-          rx={8}
-          ry={8}
-          fill="url(#tagGradient)"
-          stroke="#555"
+          rx={cornerR}
+          ry={cornerR}
+          fill="url(#tagGradientBack)"
+          stroke="#7a5a15"
           strokeWidth={1.5}
+          filter="url(#tagShadow)"
         />
-        {/* Gradient definition */}
-        <defs>
-          <linearGradient id="tagGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#d4a843" />
-            <stop offset="50%" stopColor="#c9952e" />
-            <stop offset="100%" stopColor="#b8862d" />
-          </linearGradient>
-          <linearGradient id="silverGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#e0e0e0" />
-            <stop offset="50%" stopColor="#c0c0c0" />
-            <stop offset="100%" stopColor="#a0a0a0" />
-          </linearGradient>
-        </defs>
+
         {/* Ring hole */}
         <circle
           cx={holeX}
-          cy={cy - tagH / 2 + 12}
+          cy={holeY}
           r={holeR}
           fill="#1a1a2e"
-          stroke="#666"
-          strokeWidth={1}
+          stroke="#5a4a10"
+          strokeWidth={1.5}
         />
-        {/* Text */}
+
+        {/* Engraved text - raised edge (bottom) */}
         <text
           x={cx}
-          y={cy + 5}
+          y={cy + tagH * 0.1 + 0.6}
           textAnchor="middle"
           dominantBaseline="middle"
-          fill="#333"
-          fontSize={Math.min(14, params.fontSize * 1.5)}
+          fill="rgba(255,255,255,0.15)"
+          fontSize={nameFontSize}
           fontWeight="bold"
           fontFamily="sans-serif"
         >
           {params.name}
         </text>
-        {/* Dimension annotations */}
-        <line x1={cx - tagW / 2} y1={cy + tagH / 2 + 15} x2={cx + tagW / 2} y2={cy + tagH / 2 + 15} stroke="#666" strokeWidth={0.5} markerEnd="url(#arrow)" markerStart="url(#arrow)" />
-        <text x={cx} y={cy + tagH / 2 + 28} textAnchor="middle" fill="#888" fontSize={9}>
-          {params.tagWidth}mm
+        {/* Engraved text - main (recessed) */}
+        <text
+          x={cx}
+          y={cy + tagH * 0.1}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill="#3d2a05"
+          fontSize={nameFontSize}
+          fontWeight="bold"
+          fontFamily="sans-serif"
+        >
+          {params.name}
         </text>
+
+        {/* Depth annotation */}
+        <line
+          x1={cx - tagW / 2 - 15}
+          y1={cy - 15}
+          x2={cx - tagW / 2 - 15}
+          y2={cy + 15}
+          stroke="#666"
+          strokeWidth={0.8}
+          strokeDasharray="3,2"
+        />
+        <text
+          x={cx - tagW / 2 - 20}
+          y={cy}
+          textAnchor="end"
+          fill="#888"
+          fontSize={9}
+          fontFamily="monospace"
+          dominantBaseline="middle"
+        >
+          depth: {params.tagDepth}mm
+        </text>
+        <text
+          x={cx - tagW / 2 - 20}
+          y={cy + 14}
+          textAnchor="end"
+          fill="#888"
+          fontSize={9}
+          fontFamily="monospace"
+          dominantBaseline="middle"
+        >
+          engrave: {params.textDepth}mm
+        </text>
+      </svg>
+
+      {/* Side Cross-Section */}
+      <h3 className="text-sm font-semibold text-gray-400 mt-6 mb-3 uppercase tracking-wider">Side Cross-Section</h3>
+      <svg width={svgWidth} height={100} className="drop-shadow-lg">
+        {(() => {
+          const sideScale = Math.min(200 / params.tagWidth, 60 / params.tagDepth);
+          const sideW = params.tagWidth * sideScale;
+          const sideD = params.tagDepth * sideScale;
+          const scx = svgWidth / 2;
+          const scy = 50;
+          const textD = params.textDepth * sideScale;
+
+          return (
+            <>
+              {/* Tag body */}
+              <rect
+                x={scx - sideW / 2}
+                y={scy - sideD / 2}
+                width={sideW}
+                height={sideD}
+                rx={2}
+                fill="#c9952e"
+                stroke="#7a5a15"
+                strokeWidth={1}
+              />
+              {/* Text engraving on back (top in cross-section = back face) */}
+              <rect
+                x={scx - sideW * 0.35}
+                y={scy - sideD / 2}
+                width={sideW * 0.7}
+                height={textD}
+                fill="#3d2a05"
+              />
+              {/* Labels */}
+              <text x={scx + sideW / 2 + 8} y={scy} fill="#aaa" fontSize={9} fontFamily="monospace" dominantBaseline="middle">
+                ← {params.tagDepth}mm →
+              </text>
+              <text x={scx} y={scy - sideD / 2 - 8} fill="#888" fontSize={8} fontFamily="monospace" textAnchor="middle">
+                BACK (text engraved {params.textDepth}mm deep)
+              </text>
+              <text x={scx} y={scy + sideD / 2 + 14} fill="#888" fontSize={8} fontFamily="monospace" textAnchor="middle">
+                FRONT
+              </text>
+              {/* Front/Back labels */}
+              <line x1={scx - sideW / 2} y1={scy - sideD / 2 - 3} x2={scx + sideW / 2} y2={scy - sideD / 2 - 3} stroke="#666" strokeWidth={0.5} />
+              <line x1={scx - sideW / 2} y1={scy + sideD / 2 + 3} x2={scx + sideW / 2} y2={scy + sideD / 2 + 3} stroke="#666" strokeWidth={0.5} />
+            </>
+          );
+        })()}
       </svg>
     </div>
   );
@@ -491,7 +765,9 @@ export default function App() {
           <div className="lg:col-span-8 space-y-6">
             {/* Preview */}
             <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-              <TagPreview params={params} />
+              <div className="bg-gradient-to-b from-gray-900 to-gray-800 rounded-lg p-4 border border-gray-600 flex justify-center">
+                <TagPreview params={params} />
+              </div>
             </div>
 
             {/* Code Display */}

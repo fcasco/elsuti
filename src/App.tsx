@@ -4,7 +4,7 @@ const DEFAULT_PARAMS = {
   name: "BUDDY",
   frontColor: "Silver",
   backColor: "Gold",
-  font: "Liberation Sans:style=Bold",
+  font: "Ranchers",
   fontSize: 12,
   textDepth: 3,
   backgroundDepth: 4,
@@ -278,7 +278,7 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
           strokeLinejoin="round"
           fontSize={fontSize}
           fontWeight="900"
-          fontFamily="Arial Black, Impact, sans-serif"
+          fontFamily="Ranchers, cursive"
           filter="url(#shadow)"
           paintOrder="stroke fill"
         >
@@ -296,7 +296,7 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
           strokeWidth={0.5}
           fontSize={fontSize}
           fontWeight="900"
-          fontFamily="Arial Black, Impact, sans-serif"
+          fontFamily="Ranchers, cursive"
         >
           {params.name}
         </text>
@@ -310,7 +310,7 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
           fill="rgba(255,255,255,0.2)"
           fontSize={fontSize}
           fontWeight="900"
-          fontFamily="Arial Black, Impact, sans-serif"
+          fontFamily="Ranchers, cursive"
         >
           {params.name}
         </text>

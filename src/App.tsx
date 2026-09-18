@@ -50,10 +50,14 @@ ring_x = (ring_position == "top-center") ? 0 :
          (ring_position == "top-left") ? -text_width()/2 + ring_hole_diameter :
          text_width()/2 - ring_hole_diameter;
 
-// Color preview
-color(front_color) text_part();
+// Combine all parts with union for firm connections
+color(front_color) {
+    union() {
+        text_part();
+        ring_part();
+    }
+}
 color(back_color) background_part();
-color(front_color) ring_part();
 
 // ============================================
 // MODULES
@@ -91,18 +95,32 @@ module background_part() {
     }
 }
 
-// PART 3: The ring - a torus at the top of the tag for collar attachment
+// PART 3: The ring - stands upright at the top of the tag
+// The ring overlaps with the background for a firm connection
 module ring_part() {
-    ring_y = text_height_approx() / 2 + ring_hole_diameter / 2 + background_offset + 2;
-    ring_outer = ring_hole_diameter / 2 + ring_thickness;
+    // Ring center Y: slightly inside the background top edge for overlap
+    // Background top = text_height/2 + background_offset
+    // We place ring center AT the background top so the bottom half of the
+    // ring overlaps into the background for a solid connection
+    ring_y = text_height_approx() / 2 + background_offset;
+    
+    // Ring outer radius (center of tube to outer edge)
+    ring_center_r = ring_hole_diameter / 2 + ring_thickness / 2;
 
     translate([ring_x, ring_y, background_depth / 2]) {
-        difference() {
-            // Outer ring body
+        // Rotate torus to stand upright (in XZ plane, perpendicular to tag)
+        rotate([90, 0, 0]) {
             rotate_extrude($fn = 60)
-                translate([ring_hole_diameter / 2 + ring_thickness / 2, 0, 0])
+                translate([ring_center_r, 0, 0])
                     circle(r = ring_thickness / 2, $fn = 30);
         }
+    }
+    
+    // Add a connecting bridge between ring and background for extra strength
+    bridge_height = ring_thickness;
+    bridge_width = ring_thickness;
+    translate([ring_x, ring_y - background_offset / 2, 0]) {
+        cube([bridge_width, background_offset, background_depth], center = true);
     }
 }
 
@@ -197,16 +215,21 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
   // Background offset in pixels
   const bgOffset = params.backgroundOffset * scaleFactor;
 
-  // Ring position
-  const ringY = cy - textTotalHeight / 2 - bgOffset - fontSize * 0.5;
+  // Ring dimensions
+  const ringOuterR = (params.ringHoleDiameter / 2 + params.ringThickness) * scaleFactor * 0.5;
+  const ringInnerR = (params.ringHoleDiameter / 2) * scaleFactor * 0.5;
+
+  // Ring position - center of ring is AT the top edge of background outline
+  // This means the bottom half of the ring overlaps into the background (firm connection)
+  // Background top = text top - bgOffset
+  const bgTop = cy - textTotalHeight / 2 - bgOffset;
+  const ringY = bgTop;
   let ringX = cx;
   if (params.ringPosition === "top-left") {
     ringX = cx - textTotalWidth / 2 + fontSize * 0.4;
   } else if (params.ringPosition === "top-right") {
     ringX = cx + textTotalWidth / 2 - fontSize * 0.4;
   }
-  const ringOuterR = (params.ringHoleDiameter / 2 + params.ringThickness) * scaleFactor * 0.5;
-  const ringInnerR = (params.ringHoleDiameter / 2) * scaleFactor * 0.5;
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -292,7 +315,18 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
           {params.name}
         </text>
 
-        {/* Ring at top */}
+        {/* Connection bridge between ring and background */}
+        <rect
+          x={ringX - params.ringThickness * scaleFactor * 0.25}
+          y={bgTop - bgOffset * 0.3}
+          width={params.ringThickness * scaleFactor * 0.5}
+          height={bgOffset * 0.6}
+          fill="url(#ringGradient)"
+          stroke="#777"
+          strokeWidth={0.5}
+        />
+
+        {/* Ring at top - center is at background top edge for firm connection */}
         {/* Ring outer */}
         <circle
           cx={ringX}
@@ -380,13 +414,13 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
 
       {/* Side Cross-Section */}
       <h3 className="text-sm font-semibold text-gray-400 mt-4 uppercase tracking-wider">Side Cross-Section</h3>
-      <svg width={svgWidth} height={120}>
+      <svg width={svgWidth} height={160}>
         {(() => {
-          const depthScale = 12;
+          const depthScale = 10;
           const bgD = params.backgroundDepth * depthScale;
           const txtD = params.textDepth * depthScale;
           const scx = svgWidth / 2;
-          const scy = 60;
+          const scy = 90;
           const blockW = 180;
 
           return (
@@ -413,21 +447,35 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
                 stroke="#888"
                 strokeWidth={1}
               />
-              {/* Ring cross-section */}
-              <circle
-                cx={scx}
-                cy={scy - bgD / 2 - txtD - 15}
-                r={8}
-                fill="url(#ringGradient)"
-                stroke="#777"
-                strokeWidth={1}
-              />
-              <circle
-                cx={scx}
-                cy={scy - bgD / 2 - txtD - 15}
-                r={4}
-                fill="#1a1a2e"
-              />
+              {/* Ring cross-section - positioned to touch top of text */}
+              {(() => {
+                // Ring outer radius in mm: (ringHoleDiameter / 2 + ringThickness)
+                const ringOuterR_mm = params.ringHoleDiameter / 2 + params.ringThickness;
+                const ringInnerR_mm = params.ringHoleDiameter / 2;
+                // Scale for cross-section (smaller than depth scale for visibility)
+                const ringScale = 2.5;
+                const ringRadius = ringOuterR_mm * ringScale;
+                const ringInnerRadius = ringInnerR_mm * ringScale;
+                const ringCenterY = scy - bgD / 2 - txtD - ringRadius;
+                return (
+                  <>
+                    <circle
+                      cx={scx}
+                      cy={ringCenterY}
+                      r={ringRadius}
+                      fill="url(#ringGradient)"
+                      stroke="#777"
+                      strokeWidth={1}
+                    />
+                    <circle
+                      cx={scx}
+                      cy={ringCenterY}
+                      r={ringInnerRadius}
+                      fill="#1a1a2e"
+                    />
+                  </>
+                );
+              })()}
 
               {/* Labels */}
               <text x={scx + blockW / 2 + 10} y={scy} fill="#d4a843" fontSize={10} fontFamily="monospace" dominantBaseline="middle">

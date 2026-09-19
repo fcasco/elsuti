@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 
 const DEFAULT_PARAMS = {
-  name: "BUDDY",
+  name: "Dinamita",
   frontColor: "Silver",
   backColor: "Gold",
   font: "Ranchers",

@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
 
 const DEFAULT_PARAMS = {
-  name: "BUDDY",
+  name: "Dinamita",
   frontColor: "Silver",
   backColor: "Gold",
-  font: "Liberation Sans:style=Bold",
+  font: "Ranchers",
   fontSize: 12,
   textDepth: 3,
   backgroundDepth: 4,
@@ -15,6 +15,7 @@ const DEFAULT_PARAMS = {
 };
 
 function generateOpenSCAD(params: typeof DEFAULT_PARAMS): string {
+  const safeName = params.name || "NAME";
   return `// ============================================
 // Dog Name Tag Generator - OpenSCAD
 // ============================================
@@ -23,7 +24,7 @@ function generateOpenSCAD(params: typeof DEFAULT_PARAMS): string {
 // slightly larger outline behind it.
 
 // --- TEXT PARAMETERS ---
-dog_name = "${params.name}";
+dog_name = "${safeName}";
 font = "${params.font}";
 font_size = ${params.fontSize};
 
@@ -166,17 +167,17 @@ function ParameterInput({
 }) {
   return (
     <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-300 mb-1">
+      <label className="block text-sm font-medium text-[#fef9ef] mb-1">
         {label}
       </label>
       {description && (
-        <p className="text-xs text-gray-500 mb-1">{description}</p>
+        <p className="text-xs text-[#17c3b2]/70 mb-1">{description}</p>
       )}
       {type === "select" ? (
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+          className="w-full px-3 py-2 bg-[#0f3460]/50 border border-[#227c9d]/50 rounded-lg text-[#fef9ef] text-sm focus:ring-2 focus:ring-[#17c3b2] focus:border-transparent transition-all"
         >
           <option value="top-center">Top Center</option>
           <option value="top-left">Top Left</option>
@@ -190,7 +191,7 @@ function ParameterInput({
           min={min}
           max={max}
           step={step}
-          className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+          className="w-full px-3 py-2 bg-[#0f3460]/50 border border-[#227c9d]/50 rounded-lg text-[#fef9ef] text-sm focus:ring-2 focus:ring-[#17c3b2] focus:border-transparent transition-all"
         />
       )}
     </div>
@@ -207,9 +208,12 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
   const scaleFactor = 2.8;
   const fontSize = params.fontSize * scaleFactor;
 
+  // Use placeholder if name is empty
+  const displayName = params.name || "NAME";
+  
   // Estimate text dimensions
   const charWidth = fontSize * 0.62;
-  const textTotalWidth = params.name.length * charWidth;
+  const textTotalWidth = displayName.length * charWidth;
   const textTotalHeight = fontSize * 1.1;
 
   // Background offset in pixels
@@ -234,28 +238,28 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
   return (
     <div className="flex flex-col items-center gap-4">
       {/* Front View */}
-      <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Front View</h3>
+      <h3 className="text-sm font-semibold text-[#ffcb77] uppercase tracking-wider">Front View</h3>
       <svg width={svgWidth} height={svgHeight} className="drop-shadow-xl">
         <defs>
-          {/* Background gradient (back color - gold) */}
+          {/* Background gradient (back color - apricot cream) */}
           <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#f0d060" />
-            <stop offset="30%" stopColor="#d4a843" />
-            <stop offset="60%" stopColor="#e8c84a" />
-            <stop offset="100%" stopColor="#b8862d" />
+            <stop offset="0%" stopColor="#ffcb77" />
+            <stop offset="30%" stopColor="#f5b84a" />
+            <stop offset="60%" stopColor="#ffd88a" />
+            <stop offset="100%" stopColor="#e8a83a" />
           </linearGradient>
-          {/* Text gradient (front color - silver) */}
+          {/* Text gradient (front color - light sea green) */}
           <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#f0f0f0" />
-            <stop offset="30%" stopColor="#d8d8d8" />
-            <stop offset="60%" stopColor="#e8e8e8" />
-            <stop offset="100%" stopColor="#b0b0b0" />
+            <stop offset="0%" stopColor="#17c3b2" />
+            <stop offset="30%" stopColor="#14a899" />
+            <stop offset="60%" stopColor="#1dd4c2" />
+            <stop offset="100%" stopColor="#12968a" />
           </linearGradient>
-          {/* Ring gradient */}
+          {/* Ring gradient (cerulean) */}
           <linearGradient id="ringGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#e0e0e0" />
-            <stop offset="50%" stopColor="#a0a0a0" />
-            <stop offset="100%" stopColor="#c0c0c0" />
+            <stop offset="0%" stopColor="#227c9d" />
+            <stop offset="50%" stopColor="#1a5f7a" />
+            <stop offset="100%" stopColor="#2a8fb5" />
           </linearGradient>
           {/* Shadow */}
           <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -273,16 +277,16 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
           textAnchor="middle"
           dominantBaseline="central"
           fill="url(#bgGradient)"
-          stroke="#8a6b1e"
+          stroke="#e8a83a"
           strokeWidth={bgOffset * 2}
           strokeLinejoin="round"
           fontSize={fontSize}
           fontWeight="900"
-          fontFamily="Arial Black, Impact, sans-serif"
+          fontFamily="Ranchers, cursive"
           filter="url(#shadow)"
           paintOrder="stroke fill"
         >
-          {params.name}
+          {displayName}
         </text>
 
         {/* Text (front color) - sits on top of background */}
@@ -292,13 +296,13 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
           textAnchor="middle"
           dominantBaseline="central"
           fill="url(#textGradient)"
-          stroke="#888"
+          stroke="#12968a"
           strokeWidth={0.5}
           fontSize={fontSize}
           fontWeight="900"
-          fontFamily="Arial Black, Impact, sans-serif"
+          fontFamily="Ranchers, cursive"
         >
-          {params.name}
+          {displayName}
         </text>
 
         {/* Text shine effect */}
@@ -307,12 +311,12 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
           y={cy - 1}
           textAnchor="middle"
           dominantBaseline="central"
-          fill="rgba(255,255,255,0.15)"
+          fill="rgba(255,255,255,0.2)"
           fontSize={fontSize}
           fontWeight="900"
-          fontFamily="Arial Black, Impact, sans-serif"
+          fontFamily="Ranchers, cursive"
         >
-          {params.name}
+          {displayName}
         </text>
 
         {/* Connection bridge between ring and background */}
@@ -361,7 +365,7 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
           y1={cy - fontSize * 0.3}
           x2={cx + textTotalWidth / 2 + bgOffset + 10}
           y2={cy + fontSize * 0.3}
-          stroke="#666"
+          stroke="#17c3b2"
           strokeWidth={0.8}
         />
         <line
@@ -369,14 +373,14 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
           y1={cy}
           x2={cx + textTotalWidth / 2 + bgOffset + 10}
           y2={cy}
-          stroke="#666"
+          stroke="#17c3b2"
           strokeWidth={0.8}
           strokeDasharray="2,2"
         />
         <text
           x={cx + textTotalWidth / 2 + bgOffset + 16}
           y={cy}
-          fill="#888"
+          fill="#fef9ef"
           fontSize={9}
           fontFamily="monospace"
           dominantBaseline="middle"
@@ -390,7 +394,7 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
           y1={ringY - ringOuterR - 8}
           x2={ringX + ringInnerR}
           y2={ringY - ringOuterR - 8}
-          stroke="#555"
+          stroke="#227c9d"
           strokeWidth={0.8}
           strokeDasharray="2,2"
         />
@@ -398,7 +402,7 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
           x={ringX}
           y={ringY - ringOuterR - 14}
           textAnchor="middle"
-          fill="#777"
+          fill="#fef9ef"
           fontSize={9}
           fontFamily="monospace"
         >
@@ -406,14 +410,14 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
         </text>
 
         {/* Legend */}
-        <rect x={15} y={svgHeight - 45} width={12} height={12} rx={2} fill="url(#bgGradient)" stroke="#8a6b1e" strokeWidth={0.5} />
-        <text x={32} y={svgHeight - 35} fill="#aaa" fontSize={10} dominantBaseline="middle">Background (outline)</text>
-        <rect x={15} y={svgHeight - 25} width={12} height={12} rx={2} fill="url(#textGradient)" stroke="#888" strokeWidth={0.5} />
-        <text x={32} y={svgHeight - 15} fill="#aaa" fontSize={10} dominantBaseline="middle">Text (front face)</text>
+        <rect x={15} y={svgHeight - 45} width={12} height={12} rx={2} fill="url(#bgGradient)" stroke="#e8a83a" strokeWidth={0.5} />
+        <text x={32} y={svgHeight - 35} fill="#fef9ef" fontSize={10} dominantBaseline="middle">Background (outline)</text>
+        <rect x={15} y={svgHeight - 25} width={12} height={12} rx={2} fill="url(#textGradient)" stroke="#12968a" strokeWidth={0.5} />
+        <text x={32} y={svgHeight - 15} fill="#fef9ef" fontSize={10} dominantBaseline="middle">Text (front face)</text>
       </svg>
 
       {/* Side Cross-Section */}
-      <h3 className="text-sm font-semibold text-gray-400 mt-4 uppercase tracking-wider">Side Cross-Section</h3>
+      <h3 className="text-sm font-semibold text-[#ffcb77] mt-4 uppercase tracking-wider">Side Cross-Section</h3>
       <svg width={svgWidth} height={160}>
         {(() => {
           const depthScale = 10;
@@ -433,7 +437,7 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
                 height={bgD}
                 rx={3}
                 fill="url(#bgGradient)"
-                stroke="#8a6b1e"
+                stroke="#e8a83a"
                 strokeWidth={1}
               />
               {/* Text block (on top of background, slightly inset) */}
@@ -444,7 +448,7 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
                 height={txtD}
                 rx={2}
                 fill="url(#textGradient)"
-                stroke="#888"
+                stroke="#12968a"
                 strokeWidth={1}
               />
               {/* Ring cross-section - positioned to touch top of text */}
@@ -478,24 +482,24 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
               })()}
 
               {/* Labels */}
-              <text x={scx + blockW / 2 + 10} y={scy} fill="#d4a843" fontSize={10} fontFamily="monospace" dominantBaseline="middle">
+              <text x={scx + blockW / 2 + 10} y={scy} fill="#ffcb77" fontSize={10} fontFamily="monospace" dominantBaseline="middle">
                 ← bg: {params.backgroundDepth}mm
               </text>
-              <text x={scx + blockW / 2 + 10} y={scy - bgD / 2 - txtD / 2} fill="#ccc" fontSize={10} fontFamily="monospace" dominantBaseline="middle">
+              <text x={scx + blockW / 2 + 10} y={scy - bgD / 2 - txtD / 2} fill="#fef9ef" fontSize={10} fontFamily="monospace" dominantBaseline="middle">
                 ← txt: {params.textDepth}mm
               </text>
 
               {/* Depth lines */}
-              <line x1={scx - blockW / 2 - 10} y1={scy - bgD / 2} x2={scx - blockW / 2 - 10} y2={scy + bgD / 2} stroke="#666" strokeWidth={0.8} />
-              <line x1={scx - blockW / 2 - 15} y1={scy - bgD / 2} x2={scx - blockW / 2 - 5} y2={scy - bgD / 2} stroke="#666" strokeWidth={0.8} />
-              <line x1={scx - blockW / 2 - 15} y1={scy + bgD / 2} x2={scx - blockW / 2 - 5} y2={scy + bgD / 2} stroke="#666" strokeWidth={0.8} />
-              <text x={scx - blockW / 2 - 18} y={scy} fill="#888" fontSize={8} fontFamily="monospace" textAnchor="end" dominantBaseline="middle">
+              <line x1={scx - blockW / 2 - 10} y1={scy - bgD / 2} x2={scx - blockW / 2 - 10} y2={scy + bgD / 2} stroke="#227c9d" strokeWidth={0.8} />
+              <line x1={scx - blockW / 2 - 15} y1={scy - bgD / 2} x2={scx - blockW / 2 - 5} y2={scy - bgD / 2} stroke="#227c9d" strokeWidth={0.8} />
+              <line x1={scx - blockW / 2 - 15} y1={scy + bgD / 2} x2={scx - blockW / 2 - 5} y2={scy + bgD / 2} stroke="#227c9d" strokeWidth={0.8} />
+              <text x={scx - blockW / 2 - 18} y={scy} fill="#17c3b2" fontSize={8} fontFamily="monospace" textAnchor="end" dominantBaseline="middle">
                 {params.backgroundDepth}
               </text>
 
               {/* Text depth line */}
-              <line x1={scx - blockW / 2 - 10} y1={scy - bgD / 2 - txtD} x2={scx - blockW / 2 - 10} y2={scy - bgD / 2} stroke="#999" strokeWidth={0.8} strokeDasharray="2,2" />
-              <text x={scx - blockW / 2 - 18} y={scy - bgD / 2 - txtD / 2} fill="#aaa" fontSize={8} fontFamily="monospace" textAnchor="end" dominantBaseline="middle">
+              <line x1={scx - blockW / 2 - 10} y1={scy - bgD / 2 - txtD} x2={scx - blockW / 2 - 10} y2={scy - bgD / 2} stroke="#17c3b2" strokeWidth={0.8} strokeDasharray="2,2" />
+              <text x={scx - blockW / 2 - 18} y={scy - bgD / 2 - txtD / 2} fill="#17c3b2" fontSize={8} fontFamily="monospace" textAnchor="end" dominantBaseline="middle">
                 {params.textDepth}
               </text>
             </>
@@ -573,7 +577,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `dog_tag_${params.name.toLowerCase()}.scad`;
+    a.download = `dog_tag_${(params.name || "tag").toLowerCase()}.scad`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -581,35 +585,35 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460] text-[#fef9ef]">
       {/* Header */}
-      <header className="border-b border-gray-700 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b border-[#227c9d]/30 bg-[#1a1a2e]/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="text-3xl">🐕</div>
             <div>
-              <h1 className="text-xl font-bold text-amber-400">Dog Tag Generator</h1>
-              <p className="text-xs text-gray-400">OpenSCAD — Text + Background Outline + Ring</p>
+              <h1 className="text-xl font-bold text-[#ffcb77]">Dog Tag Generator</h1>
+              <p className="text-xs text-[#17c3b2]">OpenSCAD — Text + Background Outline + Ring</p>
             </div>
           </div>
           <div className="flex gap-2">
             <button
               onClick={handleCopy}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+              className="px-4 py-2 bg-[#227c9d]/20 hover:bg-[#227c9d]/30 border border-[#227c9d]/50 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
             >
               {copied ? (
                 <>
-                  <i className="fas fa-check text-green-400"></i> Copied!
+                  <i className="fas fa-check text-[#17c3b2]"></i> Copied!
                 </>
               ) : (
                 <>
-                  <i className="fas fa-copy"></i> Copy Code
+                  <i className="fas fa-copy text-[#227c9d]"></i> Copy Code
                 </>
               )}
             </button>
             <button
               onClick={handleDownload}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-500 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+              className="px-4 py-2 bg-[#fe6d73] hover:bg-[#fe6d73]/90 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
             >
               <i className="fas fa-download"></i> Download .scad
             </button>
@@ -621,14 +625,14 @@ export default function App() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Parameters Panel */}
           <div className="lg:col-span-4 space-y-6">
-            <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-              <h2 className="text-lg font-semibold text-amber-400 mb-4 flex items-center gap-2">
+            <div className="bg-[#16213e]/50 rounded-xl p-6 border border-[#227c9d]/30">
+              <h2 className="text-lg font-semibold text-[#ffcb77] mb-4 flex items-center gap-2">
                 <i className="fas fa-sliders-h"></i> Parameters
               </h2>
 
               {/* Text Section */}
               <div className="mb-6">
-                <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider mb-3 border-b border-gray-700 pb-2">
+                <h3 className="text-sm font-bold text-[#17c3b2] uppercase tracking-wider mb-3 border-b border-[#227c9d]/30 pb-2">
                   📝 Text (Part 1)
                 </h3>
                 <ParameterInput
@@ -669,7 +673,7 @@ export default function App() {
 
               {/* Background Section */}
               <div className="mb-6">
-                <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider mb-3 border-b border-gray-700 pb-2">
+                <h3 className="text-sm font-bold text-[#17c3b2] uppercase tracking-wider mb-3 border-b border-[#227c9d]/30 pb-2">
                   🖼️ Background Outline (Part 2)
                 </h3>
                 <ParameterInput
@@ -696,7 +700,7 @@ export default function App() {
 
               {/* Colors Section */}
               <div className="mb-6">
-                <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider mb-3 border-b border-gray-700 pb-2">
+                <h3 className="text-sm font-bold text-[#17c3b2] uppercase tracking-wider mb-3 border-b border-[#227c9d]/30 pb-2">
                   🎨 Colors (Preview Only)
                 </h3>
                 <ParameterInput
@@ -717,7 +721,7 @@ export default function App() {
 
               {/* Ring Section */}
               <div className="mb-2">
-                <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider mb-3 border-b border-gray-700 pb-2">
+                <h3 className="text-sm font-bold text-[#17c3b2] uppercase tracking-wider mb-3 border-b border-[#227c9d]/30 pb-2">
                   🔗 Ring (Part 3)
                 </h3>
                 <ParameterInput
@@ -754,79 +758,79 @@ export default function App() {
           {/* Code & Preview Panel */}
           <div className="lg:col-span-8 space-y-6">
             {/* Preview */}
-            <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-              <div className="bg-gradient-to-b from-gray-900 to-gray-800 rounded-lg p-4 border border-gray-600 flex justify-center">
+            <div className="bg-[#16213e]/50 rounded-xl p-6 border border-[#227c9d]/30">
+              <div className="bg-gradient-to-b from-[#0f3460] to-[#16213e] rounded-lg p-4 border border-[#227c9d]/30 flex justify-center">
                 <TagPreview params={params} />
               </div>
             </div>
 
             {/* Code Display */}
-            <div className="bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 bg-gray-900/50 border-b border-gray-700">
+            <div className="bg-[#16213e]/50 rounded-xl border border-[#227c9d]/30 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 bg-[#0f3460]/50 border-b border-[#227c9d]/30">
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-[#fe6d73]"></div>
+                    <div className="w-3 h-3 rounded-full bg-[#ffcb77]"></div>
+                    <div className="w-3 h-3 rounded-full bg-[#17c3b2]"></div>
                   </div>
-                  <span className="text-sm text-gray-400 ml-2 font-mono">
-                    dog_tag_{params.name.toLowerCase()}.scad
+                  <span className="text-sm text-[#17c3b2]/70 ml-2 font-mono">
+                    dog_tag_{(params.name || "tag").toLowerCase()}.scad
                   </span>
                 </div>
                 <button
                   onClick={handleCopy}
-                  className="text-xs px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded transition-all"
+                  className="text-xs px-3 py-1 bg-[#227c9d]/20 hover:bg-[#227c9d]/30 border border-[#227c9d]/50 rounded transition-all"
                 >
                   {copied ? "✓ Copied" : "Copy"}
                 </button>
               </div>
               <div className="overflow-auto max-h-[500px] p-4">
-                <pre className="text-xs leading-relaxed font-mono text-gray-300 whitespace-pre">
+                <pre className="text-xs leading-relaxed font-mono text-[#fef9ef]/90 whitespace-pre">
                   <code>{scadCode}</code>
                 </pre>
               </div>
             </div>
 
             {/* Instructions */}
-            <div className="bg-gray-800/50 rounded-xl p-6 border border-gray-700">
-              <h3 className="text-lg font-semibold text-amber-400 mb-4 flex items-center gap-2">
+            <div className="bg-[#16213e]/50 rounded-xl p-6 border border-[#227c9d]/30">
+              <h3 className="text-lg font-semibold text-[#ffcb77] mb-4 flex items-center gap-2">
                 <i className="fas fa-info-circle"></i> How It Works
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+                <div className="bg-[#0f3460]/50 rounded-lg p-4 border border-[#227c9d]/30">
                   <div className="text-2xl mb-2">✏️</div>
-                  <h4 className="font-semibold text-silver-300 text-white text-sm mb-1">Part 1: Text</h4>
-                  <p className="text-xs text-gray-400">The dog's name extruded as a 3D shape. This IS the tag — the letters form the outline.</p>
+                  <h4 className="font-semibold text-[#fef9ef] text-sm mb-1">Part 1: Text</h4>
+                  <p className="text-xs text-[#17c3b2]/80">The dog's name extruded as a 3D shape. This IS the tag — the letters form the outline.</p>
                 </div>
-                <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+                <div className="bg-[#0f3460]/50 rounded-lg p-4 border border-[#227c9d]/30">
                   <div className="text-2xl mb-2">🖼️</div>
-                  <h4 className="font-semibold text-white text-sm mb-1">Part 2: Background</h4>
-                  <p className="text-xs text-gray-400">Same text shape but slightly larger using OpenSCAD's <code className="text-amber-400">offset()</code>. Creates a border/outline effect.</p>
+                  <h4 className="font-semibold text-[#fef9ef] text-sm mb-1">Part 2: Background</h4>
+                  <p className="text-xs text-[#17c3b2]/80">Same text shape but slightly larger using OpenSCAD's <code className="text-[#ffcb77]">offset()</code>. Creates a border/outline effect.</p>
                 </div>
-                <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+                <div className="bg-[#0f3460]/50 rounded-lg p-4 border border-[#227c9d]/30">
                   <div className="text-2xl mb-2">⭕</div>
-                  <h4 className="font-semibold text-white text-sm mb-1">Part 3: Ring</h4>
-                  <p className="text-xs text-gray-400">A torus at the top of the tag for attaching to the collar. Position is adjustable.</p>
+                  <h4 className="font-semibold text-[#fef9ef] text-sm mb-1">Part 3: Ring</h4>
+                  <p className="text-xs text-[#17c3b2]/80">A torus at the top of the tag for attaching to the collar. Position is adjustable.</p>
                 </div>
               </div>
               <div className="space-y-2">
                 <div className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
-                  <p className="text-sm text-gray-300">Adjust parameters to customize your dog tag</p>
+                  <span className="flex-shrink-0 w-6 h-6 bg-[#fe6d73] rounded-full flex items-center justify-center text-xs font-bold text-[#fef9ef]">1</span>
+                  <p className="text-sm text-[#fef9ef]/90">Adjust parameters to customize your dog tag</p>
                 </div>
                 <div className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-                  <p className="text-sm text-gray-300">Download the .scad file or copy the code</p>
+                  <span className="flex-shrink-0 w-6 h-6 bg-[#fe6d73] rounded-full flex items-center justify-center text-xs font-bold text-[#fef9ef]">2</span>
+                  <p className="text-sm text-[#fef9ef]/90">Download the .scad file or copy the code</p>
                 </div>
                 <div className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-amber-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
-                  <p className="text-sm text-gray-300">Open in <a href="https://openscad.org" target="_blank" rel="noopener" className="text-amber-400 hover:underline">OpenSCAD</a> → Press F6 to render → Export as STL</p>
+                  <span className="flex-shrink-0 w-6 h-6 bg-[#fe6d73] rounded-full flex items-center justify-center text-xs font-bold text-[#fef9ef]">3</span>
+                  <p className="text-sm text-[#fef9ef]/90">Open in <a href="https://openscad.org" target="_blank" rel="noopener" className="text-[#17c3b2] hover:underline">OpenSCAD</a> → Press F6 to render → Export as STL</p>
                 </div>
               </div>
-              <div className="mt-4 p-3 bg-gray-900/50 rounded-lg border border-gray-600">
-                <p className="text-xs text-gray-400">
-                  <strong className="text-amber-400">💡 Tip:</strong> The <code className="text-amber-300">background_offset</code> parameter controls how thick the outline border is around the text. 
-                  Use bold fonts for best results. The ring is a torus (donut shape) created with <code className="text-amber-300">rotate_extrude</code>.
+              <div className="mt-4 p-3 bg-[#0f3460]/50 rounded-lg border border-[#227c9d]/30">
+                <p className="text-xs text-[#17c3b2]/80">
+                  <strong className="text-[#ffcb77]">💡 Tip:</strong> The <code className="text-[#17c3b2]">background_offset</code> parameter controls how thick the outline border is around the text. 
+                  Use bold fonts for best results. The ring is a torus (donut shape) created with <code className="text-[#17c3b2]">rotate_extrude</code>.
                 </p>
               </div>
             </div>
@@ -835,8 +839,8 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-700 mt-12 py-6">
-        <div className="max-w-7xl mx-auto px-4 text-center text-sm text-gray-500">
+      <footer className="border-t border-[#227c9d]/30 mt-12 py-6">
+        <div className="max-w-7xl mx-auto px-4 text-center text-sm text-[#17c3b2]/60">
           <p>🐾 Dog Tag OpenSCAD Generator — Text + Background Outline + Ring</p>
         </div>
       </footer>

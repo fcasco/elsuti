@@ -15,6 +15,7 @@ const DEFAULT_PARAMS = {
 };
 
 function generateOpenSCAD(params: typeof DEFAULT_PARAMS): string {
+  const safeName = params.name || "NAME";
   return `// ============================================
 // Dog Name Tag Generator - OpenSCAD
 // ============================================
@@ -23,7 +24,7 @@ function generateOpenSCAD(params: typeof DEFAULT_PARAMS): string {
 // slightly larger outline behind it.
 
 // --- TEXT PARAMETERS ---
-dog_name = "${params.name}";
+dog_name = "${safeName}";
 font = "${params.font}";
 font_size = ${params.fontSize};
 
@@ -207,9 +208,12 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
   const scaleFactor = 2.8;
   const fontSize = params.fontSize * scaleFactor;
 
+  // Use placeholder if name is empty
+  const displayName = params.name || "NAME";
+  
   // Estimate text dimensions
   const charWidth = fontSize * 0.62;
-  const textTotalWidth = params.name.length * charWidth;
+  const textTotalWidth = displayName.length * charWidth;
   const textTotalHeight = fontSize * 1.1;
 
   // Background offset in pixels
@@ -282,7 +286,7 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
           filter="url(#shadow)"
           paintOrder="stroke fill"
         >
-          {params.name}
+          {displayName}
         </text>
 
         {/* Text (front color) - sits on top of background */}
@@ -298,7 +302,7 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
           fontWeight="900"
           fontFamily="Ranchers, cursive"
         >
-          {params.name}
+          {displayName}
         </text>
 
         {/* Text shine effect */}
@@ -312,7 +316,7 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
           fontWeight="900"
           fontFamily="Ranchers, cursive"
         >
-          {params.name}
+          {displayName}
         </text>
 
         {/* Connection bridge between ring and background */}
@@ -573,7 +577,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `dog_tag_${params.name.toLowerCase()}.scad`;
+    a.download = `dog_tag_${(params.name || "tag").toLowerCase()}.scad`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -770,7 +774,7 @@ export default function App() {
                     <div className="w-3 h-3 rounded-full bg-[#17c3b2]"></div>
                   </div>
                   <span className="text-sm text-[#17c3b2]/70 ml-2 font-mono">
-                    dog_tag_{params.name.toLowerCase()}.scad
+                    dog_tag_{(params.name || "tag").toLowerCase()}.scad
                   </span>
                 </div>
                 <button

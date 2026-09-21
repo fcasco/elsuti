@@ -96,32 +96,27 @@ module background_part() {
     }
 }
 
-// PART 3: The ring - stands upright at the top of the tag
-// The ring overlaps with the background for a firm connection
+// PART 3: The ring - flat extension of the back plate
+// Same depth as background, positioned to overlap with it
 module ring_part() {
-    // Ring center Y: slightly inside the background top edge for overlap
+    // Ring outer diameter
+    ring_outer_d = ring_hole_diameter + ring_thickness * 2;
+    
+    // Position ring so its bottom edge touches the background top
     // Background top = text_height/2 + background_offset
-    // We place ring center AT the background top so the bottom half of the
-    // ring overlaps into the background for a solid connection
-    ring_y = text_height_approx() / 2 + background_offset;
-    
-    // Ring outer radius (center of tube to outer edge)
-    ring_center_r = ring_hole_diameter / 2 + ring_thickness / 2;
+    // Ring center Y = background top + ring_outer_d/2 - overlap
+    ring_y = text_height_approx() / 2 + background_offset + ring_outer_d / 2 - 1;
 
-    translate([ring_x, ring_y, background_depth / 2]) {
-        // Rotate torus to stand upright (in XZ plane, perpendicular to tag)
-        rotate([90, 0, 0]) {
-            rotate_extrude($fn = 60)
-                translate([ring_center_r, 0, 0])
-                    circle(r = ring_thickness / 2, $fn = 30);
+    // Flat ring with same depth as background
+    translate([ring_x, ring_y, 0]) {
+        difference() {
+            // Outer cylinder (same depth as background)
+            cylinder(h = background_depth, d = ring_outer_d, $fn = 50);
+            
+            // Inner hole
+            translate([0, 0, -1])
+                cylinder(h = background_depth + 2, d = ring_hole_diameter, $fn = 50);
         }
-    }
-    
-    // Add a connecting bridge between ring and background for extra strength
-    bridge_height = ring_thickness;
-    bridge_width = ring_thickness;
-    translate([ring_x, ring_y - background_offset / 2, 0]) {
-        cube([bridge_width, background_offset, background_depth], center = true);
     }
 }
 
@@ -136,13 +131,13 @@ module ring_part() {
 // The tag has 3 parts:
 // - Text: The dog's name as the main shape
 // - Background: A slightly larger outline behind the text
-// - Ring: A loop at the top for collar attachment
+// - Ring: A flat extension at the top for collar attachment
 //
 // Tips:
 // - background_offset controls how thick the border is
 // - background_depth should be >= text_depth for best look
 // - Use bold fonts for better visibility
-// - The ring connects to the background outline
+// - The ring is flat and extends from the back plate
 `;
 }
 
@@ -199,13 +194,13 @@ function ParameterInput({
 }
 
 function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
-  const svgWidth = 380;
-  const svgHeight = 260;
+  const svgWidth = 600;
+  const svgHeight = 400;
   const cx = svgWidth / 2;
   const cy = svgHeight / 2 + 10;
 
   // Scale factor for rendering text
-  const scaleFactor = 2.8;
+  const scaleFactor = 4.2;
   const fontSize = params.fontSize * scaleFactor;
 
   // Use placeholder if name is empty
@@ -223,11 +218,11 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
   const ringOuterR = (params.ringHoleDiameter / 2 + params.ringThickness) * scaleFactor * 0.5;
   const ringInnerR = (params.ringHoleDiameter / 2) * scaleFactor * 0.5;
 
-  // Ring position - center of ring is AT the top edge of background outline
-  // This means the bottom half of the ring overlaps into the background (firm connection)
+  // Ring position - flat ring that overlaps with background top edge
   // Background top = text top - bgOffset
+  // Ring center is positioned so bottom of ring overlaps into background
   const bgTop = cy - textTotalHeight / 2 - bgOffset;
-  const ringY = bgTop;
+  const ringY = bgTop + ringOuterR - 3; // Overlap by 3 pixels
   let ringX = cx;
   if (params.ringPosition === "top-left") {
     ringX = cx - textTotalWidth / 2 + fontSize * 0.4;
@@ -239,7 +234,7 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
     <div className="flex flex-col items-center gap-4">
       {/* Front View */}
       <h3 className="text-sm font-semibold text-[#ffcb77] uppercase tracking-wider">Front View</h3>
-      <svg width={svgWidth} height={svgHeight} className="drop-shadow-xl">
+      <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-auto drop-shadow-xl">
         <defs>
           {/* Background gradient (back color - apricot cream) */}
           <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -319,18 +314,7 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
           {displayName}
         </text>
 
-        {/* Connection bridge between ring and background */}
-        <rect
-          x={ringX - params.ringThickness * scaleFactor * 0.25}
-          y={bgTop - bgOffset * 0.3}
-          width={params.ringThickness * scaleFactor * 0.5}
-          height={bgOffset * 0.6}
-          fill="url(#ringGradient)"
-          stroke="#777"
-          strokeWidth={0.5}
-        />
-
-        {/* Ring at top - center is at background top edge for firm connection */}
+        {/* Flat ring at top - extension of back plate */}
         {/* Ring outer */}
         <circle
           cx={ringX}
@@ -418,7 +402,7 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
 
       {/* Side Cross-Section */}
       <h3 className="text-sm font-semibold text-[#ffcb77] mt-4 uppercase tracking-wider">Side Cross-Section</h3>
-      <svg width={svgWidth} height={160}>
+      <svg viewBox={`0 0 ${svgWidth} 160`} className="w-full h-auto">
         {(() => {
           const depthScale = 10;
           const bgD = params.backgroundDepth * depthScale;
@@ -451,30 +435,32 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
                 stroke="#12968a"
                 strokeWidth={1}
               />
-              {/* Ring cross-section - positioned to touch top of text */}
+              {/* Ring cross-section - flat extension of back plate */}
               {(() => {
-                // Ring outer radius in mm: (ringHoleDiameter / 2 + ringThickness)
-                const ringOuterR_mm = params.ringHoleDiameter / 2 + params.ringThickness;
-                const ringInnerR_mm = params.ringHoleDiameter / 2;
-                // Scale for cross-section (smaller than depth scale for visibility)
-                const ringScale = 2.5;
-                const ringRadius = ringOuterR_mm * ringScale;
-                const ringInnerRadius = ringInnerR_mm * ringScale;
-                const ringCenterY = scy - bgD / 2 - txtD - ringRadius;
+                // Ring as flat rectangle with same depth as background
+                const ringWidth = (params.ringHoleDiameter + params.ringThickness * 2) * 2.5;
+                const ringHoleWidth = params.ringHoleDiameter * 2.5;
+                const ringTop = scy - bgD / 2 - txtD - bgD + 2; // Overlap with text top
                 return (
                   <>
-                    <circle
-                      cx={scx}
-                      cy={ringCenterY}
-                      r={ringRadius}
+                    {/* Ring body - same depth as background */}
+                    <rect
+                      x={scx - ringWidth / 2}
+                      y={ringTop}
+                      width={ringWidth}
+                      height={bgD}
+                      rx={2}
                       fill="url(#ringGradient)"
                       stroke="#777"
                       strokeWidth={1}
                     />
-                    <circle
-                      cx={scx}
-                      cy={ringCenterY}
-                      r={ringInnerRadius}
+                    {/* Ring hole */}
+                    <rect
+                      x={scx - ringHoleWidth / 2}
+                      y={ringTop - 1}
+                      width={ringHoleWidth}
+                      height={bgD + 2}
+                      rx={1}
                       fill="#1a1a2e"
                     />
                   </>
@@ -759,7 +745,7 @@ export default function App() {
           <div className="lg:col-span-8 space-y-6">
             {/* Preview */}
             <div className="bg-[#16213e]/50 rounded-xl p-6 border border-[#227c9d]/30">
-              <div className="bg-gradient-to-b from-[#0f3460] to-[#16213e] rounded-lg p-4 border border-[#227c9d]/30 flex justify-center">
+              <div className="bg-gradient-to-b from-[#0f3460] to-[#16213e] rounded-lg p-4 border border-[#227c9d]/30 flex justify-center w-4/5 mx-auto">
                 <TagPreview params={params} />
               </div>
             </div>
@@ -810,7 +796,7 @@ export default function App() {
                 <div className="bg-[#0f3460]/50 rounded-lg p-4 border border-[#227c9d]/30">
                   <div className="text-2xl mb-2">⭕</div>
                   <h4 className="font-semibold text-[#fef9ef] text-sm mb-1">Part 3: Ring</h4>
-                  <p className="text-xs text-[#17c3b2]/80">A torus at the top of the tag for attaching to the collar. Position is adjustable.</p>
+                  <p className="text-xs text-[#17c3b2]/80">A flat extension at the top of the tag for attaching to the collar. Same depth as background.</p>
                 </div>
               </div>
               <div className="space-y-2">
@@ -830,7 +816,7 @@ export default function App() {
               <div className="mt-4 p-3 bg-[#0f3460]/50 rounded-lg border border-[#227c9d]/30">
                 <p className="text-xs text-[#17c3b2]/80">
                   <strong className="text-[#ffcb77]">💡 Tip:</strong> The <code className="text-[#17c3b2]">background_offset</code> parameter controls how thick the outline border is around the text. 
-                  Use bold fonts for best results. The ring is a torus (donut shape) created with <code className="text-[#17c3b2]">rotate_extrude</code>.
+                  Use bold fonts for best results. The ring is a flat extension of the back plate with a hole for the collar.
                 </p>
               </div>
             </div>

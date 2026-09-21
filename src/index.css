@@ -1,13 +1,1 @@
 @import "tailwindcss";
-
-:root {
-  --cerulean: #227c9dff;
-  --light-sea-green: #17c3b2ff;
-  --apricot-cream: #ffcb77ff;
-  --floral-white: #fef9efff;
-  --grapefruit-pink: #fe6d73ff;
-}
-
-body {
-  font-family: 'Ubuntu', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-}

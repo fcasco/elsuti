@@ -234,7 +234,7 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
     <div className="flex flex-col items-center gap-4">
       {/* Front View */}
       <h3 className="text-sm font-semibold text-[#ffcb77] uppercase tracking-wider">Front View</h3>
-      <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-auto drop-shadow-xl" style={{ maxWidth: svgWidth }}>
+      <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-auto drop-shadow-xl">
         <defs>
           {/* Background gradient (back color - apricot cream) */}
           <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -402,7 +402,7 @@ function TagPreview({ params }: { params: typeof DEFAULT_PARAMS }) {
 
       {/* Side Cross-Section */}
       <h3 className="text-sm font-semibold text-[#ffcb77] mt-4 uppercase tracking-wider">Side Cross-Section</h3>
-      <svg viewBox={`0 0 ${svgWidth} 160`} className="w-full h-auto" style={{ maxWidth: svgWidth }}>
+      <svg viewBox={`0 0 ${svgWidth} 160`} className="w-full h-auto">
         {(() => {
           const depthScale = 10;
           const bgD = params.backgroundDepth * depthScale;
